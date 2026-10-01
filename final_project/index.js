@@ -1,22 +1,14 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const session = require('express-session')
-const customer_routes = require('./router/auth_users.js').authenticated;
-const genl_routes = require('./router/general.js').general;
-
+const session = require('express-session');
+const { randomBytes } = require('node:crypto');
 const app = express();
-
 app.use(express.json());
-
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
-
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
-});
- 
-const PORT =5000;
-
-app.use("/customer", customer_routes);
-app.use("/", genl_routes);
-
-app.listen(PORT,()=>console.log("Server is running"));
+app.set('json spaces', 2);
+app.use('/customer', session({
+  secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
+  resave: false, saveUninitialized: false,
+  cookie: { httpOnly: true, sameSite: 'lax' }
+}));
+app.use('/customer', require('./router/auth_users').authenticated);
+app.use('/', require('./router/general').general);
+app.listen(process.env.PORT || 5000, () => console.log('Bookstore server running'));
